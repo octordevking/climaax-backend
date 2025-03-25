@@ -1,0 +1,15 @@
+GET http://localhost:5050/api/v1/stake/options HTTP/1.1
+Content-Type: application/json
+###
+GET http://localhost:5050/api/v1/account?address=rHvs8rsUUD733zVZfDmwh8BBknaWzk6QRc HTTP/1.1
+Content-Type: application/json
+###
+POST http://localhost:5050/api/v1/stake HTTP/1.1
+Content-Type: application/json
+
+{
+    "txid": "BBF5410A0459B1F386D047FF0BD56C20327046A8B4E4F8D615974B91AE113899",
+    "address": "rLvJ2APmXbssm7KGs8upH6q5D1JKeW2MJr",
+    "amount": "100",
+    "option": 1
+}

@@ -1,0 +1,19 @@
+{
+  "files": {
+    "main.css": "/static/css/main.ca520fae.css",
+    "main.js": "/static/js/main.a21c5d9a.js",
+    "static/js/787.1dcf2d22.chunk.js": "/static/js/787.1dcf2d22.chunk.js",
+    "static/media/glass.png": "/static/media/glass.89bc525ed779f8a8ab1b.png",
+    "static/media/loading.gif": "/static/media/loading.0aa2498a4fcc300d0b6b.gif",
+    "static/media/logo.png": "/static/media/logo.cfc6c9b4d9da6af144e9.png",
+    "static/media/card-select-bg.png": "/static/media/card-select-bg.3738846a6c84a7aca0c4.png",
+    "index.html": "/index.html",
+    "main.ca520fae.css.map": "/static/css/main.ca520fae.css.map",
+    "main.a21c5d9a.js.map": "/static/js/main.a21c5d9a.js.map",
+    "787.1dcf2d22.chunk.js.map": "/static/js/787.1dcf2d22.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.ca520fae.css",
+    "static/js/main.a21c5d9a.js"
+  ]
+}

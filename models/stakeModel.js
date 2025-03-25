@@ -1,0 +1,185 @@
+const mysql = require("mysql");
+const util = require("util");
+const moment = require('moment');
+const dotenv = require("dotenv");
+const { checkTransactionValidity } = require("../utils/utils");
+require("moment-timezone");
+
+dotenv.config({ path: "./config.env" });
+
+const pool = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME
+});
+
+const getConnection = util.promisify(pool.getConnection).bind(pool);
+
+exports.queryPossibleStakeOptions = async () => {
+    let connection;
+    try {
+        connection = await getConnection();
+        const queryPromise = util.promisify(connection.query).bind(connection);
+        const results = await queryPromise(`SELECT * FROM stake_options WHERE visibility = 1`);
+        return results;
+    } catch (error) {
+        console.error('Error executing query:', error);
+        throw error;
+    } finally {
+        if (connection) {
+            connection.release(); // Release the connection back to the pool
+        }
+    }
+}
+
+exports.queryAllStakeOptions = async () => {
+    let connection;
+    try {
+        connection = await getConnection();
+        const queryPromise = util.promisify(connection.query).bind(connection);
+        const results = await queryPromise(`SELECT * FROM stake_options`);
+        return results;
+    } catch (error) {
+        console.error('Error executing query:', error);
+        throw error;
+    } finally {
+        if (connection) {
+            connection.release(); // Release the connection back to the pool
+        }
+    }
+}
+
+exports.queryStakeLogsByAddress = async (address) => {
+    let connection;
+    try {
+        connection = await getConnection();
+        const queryPromise = util.promisify(connection.query).bind(connection);
+        const results = await queryPromise(`SELECT * FROM transactions 
+            INNER JOIN stake_options ON transactions.stake_type = stake_options.id
+            WHERE from_address = ?
+        `, [address]);
+        return results;
+    } catch (error) {
+        console.error('Error executing query:', error);
+        throw error;
+    } finally {
+        if (connection) {
+            connection.release(); // Release the connection back to the pool
+        }
+    }
+}
+
+exports.queryAllStakeLogs = async () => {
+    let connection;
+    try {
+        connection = await getConnection();
+        const queryPromise = util.promisify(connection.query).bind(connection);
+        const results = await queryPromise(`SELECT * FROM transactions 
+            INNER JOIN stake_options ON transactions.stake_type = stake_options.id
+            WHERE flag = 0 AND reward_trx IS NULL
+        `);
+        return results;
+    } catch (error) {
+        console.error('Error executing query:', error);
+        throw error;
+    } finally {
+        if (connection) {
+            connection.release(); // Release the connection back to the pool
+        }
+    }
+}
+
+exports.updateStakeLog = async (trx_hash, reward_trx, amount) => {
+    let connection;
+    try {
+        connection = await getConnection();
+        const queryPromise = util.promisify(connection.query).bind(connection);
+
+        const results = await queryPromise(
+            `UPDATE transactions 
+             SET flag = 1, reward_trx = ?, reward_amount = ?, rewarded_at = ? 
+             WHERE trx_hash = ?`,
+            [reward_trx, amount, new Date(), trx_hash]
+        );
+
+        return results;
+    } catch (error) {
+        console.error('Error executing query:', error);
+        throw error;
+    } finally {
+        if (connection) {
+            connection.release(); // Release the connection back to the pool
+        }
+    }
+}
+
+exports.saveNewStake = async ({ txid, address, amount, option }) => {
+    let connection;
+    try {
+        connection = await getConnection();
+        const queryPromise = util.promisify(connection.query).bind(connection);
+        const results = await queryPromise(`
+            INSERT INTO transactions (trx_hash, amount, stake_type, from_address, to_address) VALUES (?,?,?,?,?)`, [
+            txid,
+            amount,
+            option,
+            address,
+            process.env.TREASURY_ACCOUNT
+        ]);
+        return results;
+    } catch (error) {
+        console.error('Error executing query:', error);
+        throw error;
+    } finally {
+        if (connection) {
+            connection.release(); // Release the connection back to the pool
+        }
+    }
+}
+
+exports.saveSwap = async ({ txid, address, amount }) => {
+    let connection;
+    try {
+        connection = await getConnection();
+        const queryPromise = util.promisify(connection.query).bind(connection);
+        const results = await queryPromise(`
+            INSERT INTO swap (trx_hash, address, amount) VALUES (?,?,?)`, [
+            txid,
+            address,
+            amount
+        ]);
+        return results;
+    } catch (error) {
+        console.error('Error executing query:', error);
+        throw error;
+    } finally {
+        if (connection) {
+            connection.release(); // Release the connection back to the pool
+        }
+    }
+}
+
+exports.updateSwap = async ({ txid, tx_hash }) => {
+    let connection;
+    try {
+        connection = await getConnection();
+        const queryPromise = util.promisify(connection.query).bind(connection);
+        const results = await queryPromise(`
+            UPDATE swap 
+            SET reward_hash = ? 
+            WHERE trx_hash = ?`,
+            [
+                tx_hash,
+                txid
+            ]);
+        return results;
+    } catch (error) {
+        console.error('Error executing query:', error);
+        throw error;
+    } finally {
+        if (connection) {
+            connection.release(); // Release the connection back to the pool
+        }
+    }
+}
