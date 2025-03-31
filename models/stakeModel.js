@@ -3,23 +3,15 @@ const util = require("util");
 const moment = require('moment');
 const dotenv = require("dotenv");
 const { checkTransactionValidity } = require("../utils/utils");
+const Config = require("../utils/config");
 require("moment-timezone");
 
-dotenv.config({ path: "./config.env" });
-
-const pool = mysql.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME
-});
-
-const getConnection = util.promisify(pool.getConnection).bind(pool);
+dotenv.config();
 
 exports.queryPossibleStakeOptions = async () => {
     let connection;
     try {
-        connection = await getConnection();
+        connection = await Config.getConnection();
         const queryPromise = util.promisify(connection.query).bind(connection);
         const results = await queryPromise(`SELECT * FROM stake_options WHERE visibility = 1`);
         return results;
@@ -36,7 +28,7 @@ exports.queryPossibleStakeOptions = async () => {
 exports.queryAllStakeOptions = async () => {
     let connection;
     try {
-        connection = await getConnection();
+        connection = await Config.getConnection();
         const queryPromise = util.promisify(connection.query).bind(connection);
         const results = await queryPromise(`SELECT * FROM stake_options`);
         return results;
@@ -53,7 +45,7 @@ exports.queryAllStakeOptions = async () => {
 exports.queryStakeLogsByAddress = async (address) => {
     let connection;
     try {
-        connection = await getConnection();
+        connection = await Config.getConnection();
         const queryPromise = util.promisify(connection.query).bind(connection);
         const results = await queryPromise(`SELECT * FROM transactions 
             INNER JOIN stake_options ON transactions.stake_type = stake_options.id
@@ -73,7 +65,7 @@ exports.queryStakeLogsByAddress = async (address) => {
 exports.queryAllStakeLogs = async () => {
     let connection;
     try {
-        connection = await getConnection();
+        connection = await Config.getConnection();
         const queryPromise = util.promisify(connection.query).bind(connection);
         const results = await queryPromise(`SELECT * FROM transactions 
             INNER JOIN stake_options ON transactions.stake_type = stake_options.id
@@ -93,7 +85,7 @@ exports.queryAllStakeLogs = async () => {
 exports.updateStakeLog = async (trx_hash, reward_trx, amount) => {
     let connection;
     try {
-        connection = await getConnection();
+        connection = await Config.getConnection();
         const queryPromise = util.promisify(connection.query).bind(connection);
 
         const results = await queryPromise(
@@ -117,7 +109,7 @@ exports.updateStakeLog = async (trx_hash, reward_trx, amount) => {
 exports.saveNewStake = async ({ txid, address, amount, option }) => {
     let connection;
     try {
-        connection = await getConnection();
+        connection =await Config.getConnection();
         const queryPromise = util.promisify(connection.query).bind(connection);
         const results = await queryPromise(`
             INSERT INTO transactions (trx_hash, amount, stake_type, from_address, to_address) VALUES (?,?,?,?,?)`, [
@@ -141,7 +133,7 @@ exports.saveNewStake = async ({ txid, address, amount, option }) => {
 exports.saveSwap = async ({ txid, address, amount }) => {
     let connection;
     try {
-        connection = await getConnection();
+        connection = await Config.getConnection();
         const queryPromise = util.promisify(connection.query).bind(connection);
         const results = await queryPromise(`
             INSERT INTO swap (trx_hash, address, amount) VALUES (?,?,?)`, [
@@ -163,7 +155,7 @@ exports.saveSwap = async ({ txid, address, amount }) => {
 exports.updateSwap = async ({ txid, tx_hash }) => {
     let connection;
     try {
-        connection = await getConnection();
+        connection = await Config.getConnection();
         const queryPromise = util.promisify(connection.query).bind(connection);
         const results = await queryPromise(`
             UPDATE swap 

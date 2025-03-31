@@ -1,5 +1,7 @@
 const xrpl = require('xrpl');
 const Config = require('./config');
+const { response } = require('express');
+const {getExistingNftsIds, updateBurnedNfts, insertNfts} = require('../models/nftModel');
 const { Client } = xrpl;
 const client = new Client(Config.XRP_RPC);
 
@@ -7,6 +9,7 @@ async function connectClient() {
   if (!client.isConnected()) {
     try {
       await client.connect();
+      await exports.updateXRPNftListByContractId(process.env.WALLET_ISSUER);
       console.log("Successfully connected to the XRPL WebSocket server.");
     } catch (error) {
       console.error(`Connection failed: ${error.message}`);
@@ -186,3 +189,70 @@ exports.checkTransactionValidity = async (transactionId, fromAddress, amount, ol
     throw error;
   }
 };
+
+const getNftsOfAccount = async (accountAddress) => {
+  try {
+      const nftLists = await client.request({
+      command: "account_nfts",
+      account: accountAddress,
+    })
+    
+    return nftLists.result.account_nfts
+  } catch (err){
+    throw new Error(err.message);
+  }
+}
+
+const fetchAllVaidatedNfts = async (issuerAddress) =>{
+  try { 
+    let allNFTs = [];
+    let marker = null;
+
+    do {
+      const requestBody = {
+        command: "nfts_by_issuer",
+        issuer: issuerAddress,
+        ledger_index: "validated"
+      }
+
+      if (marker) {
+        requestBody.marker = marker;
+      }
+
+      const res = await client.request(requestBody);
+      allNFTs.push(...res.result.nfts);
+      
+      marker = res.result.marker ||  null;
+    } while (marker);
+    
+    return allNFTs
+  } catch (err) {
+    console.error("Error fetching NFTs", err);
+    return [];
+  }
+};
+
+exports.updateXRPNftListByContractId = async (issuerAddress) => {
+  try{ 
+    const nfts = await fetchAllVaidatedNfts(issuerAddress);
+    if (nfts.length === 0) return;
+    const existingNFTsIds = await getExistingNftsIds();
+    const newNfts = nfts.filter(nft => !existingNFTsIds.includes(nft.nft_id)); 
+    await insertNfts(newNfts);
+    const burnedNftIds = nfts.filter(nft => nft.is_burned).map(nft => nft.nft_id);
+    await updateBurnedNfts(burnedNftIds);
+  } catch (err) {
+    console.error("Error updating NFTs", err);
+  }
+}
+
+exports.getVerifiedNftsOfAccount = async (accountAddress) => {
+  try {
+    const nftLists = await getNftsOfAccount(accountAddress);
+    const existingNFTsIds = await getExistingNftsIds();
+    const verifiedNfts = nftLists.filter(nft => existingNFTsIds.includes(nft.nft_id));
+    return verifiedNfts;
+  } catch (err){
+    throw new Error(err.message);
+  }
+}

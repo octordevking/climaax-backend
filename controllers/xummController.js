@@ -3,6 +3,7 @@ const xrpl = require("xrpl");
 const { XummSdk } = require("xumm-sdk");
 const verifySignature = require("verify-xrpl-signature").verifySignature;
 const Config = require("../utils/config");
+
 const xummSdk = new XummSdk(process.env.XUMM_API_KEY, process.env.XUMM_API_SECRET);
 
 exports.signinXumm = Utils.catchAsync(async (req, res) => {

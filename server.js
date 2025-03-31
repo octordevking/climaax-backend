@@ -1,8 +1,10 @@
 const dotenv = require("dotenv");
 const app = require("./app.js");
 const http = require('http');
+const { startSocketService } = require("./socket/socket-service.js");
 
-dotenv.config({ path: "./config.env" });
+require("./utils/cron-job.js");
+dotenv.config();
 
 // IT SHOULD BE ON TOP SO THAT WE CATCH EVERY ERROR
 // SOLVING UNCAUGHT EXCEPTION (for example a variable that is undefined)
@@ -41,3 +43,7 @@ process.on("SIGTERM", () => {
         console.log("💥🔥 Process terminated.");
     });
 });
+
+startSocketService(app);
+
+// updateXRPNftListByContractId(process.env.WALLET_ISSUER);
