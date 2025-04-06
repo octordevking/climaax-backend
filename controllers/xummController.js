@@ -57,25 +57,33 @@ exports.checkSign = Utils.catchAsync(async (req, res) => {
     });
 });
 
-exports.getAccountValue = Utils.catchAsync(async (req, res) => {
-    const address = req.query.address;
-    const results = await Utils.getBalance(address);
+exports. getAccountValue = Utils.catchAsync(async (req, res) => {
+    try {
+        const address = req.query.address;
+        const results = await Utils.getBalance(address);
 
-    const tokens = results.lines;
-    let aax = tokens.filter(token => token.currency === process.env.TOKEN_SYMBOL && token.account === process.env.TOKEN_ISSUER);
+        const tokens = results.lines;
+        let aax = tokens.filter(token => token.currency === process.env.TOKEN_SYMBOL && token.account === process.env.TOKEN_ISSUER);
 
-    if (aax.length === 0) {
-        aax = [{
-            balance: 0,
-            limit: 0
-        }];
+        if (aax.length === 0) {
+            aax = [{
+                balance: 0,
+                limit: 0
+            }];
+        }
+
+        res.status(200).json({
+            status: 200,
+            result: aax[0],
+            error: null
+        });
+    } catch (error) {
+        res.status(200).json({
+            status: 500,
+            result: null,
+            error: error.message
+        });
     }
-
-    res.status(200).json({
-        status: 200,
-        result: aax[0],
-        error: null
-    });
 });
 
 exports.getAccountOldValue = Utils.catchAsync(async (req, res) => {

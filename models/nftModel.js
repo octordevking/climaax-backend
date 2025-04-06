@@ -88,3 +88,50 @@ exports.updateBurnedNfts = async (burnedNftsIds) => {
         throw error;
     }
 }
+
+exports.getPointsByTaxonId = async () => {
+    let connection;
+    try {
+        connection = await Config.getConnection();
+        const queryPromise = util.promisify(connection.query).bind(connection);
+        const rows = await queryPromise(
+            `SELECT points, nft_taxon FROM xrp_nft_collections`
+        );
+        if (!rows) return [];
+        const taxonPoints = [];
+        rows.forEach(row => {
+            taxonPoints[row.nft_taxon] = row.points;
+        });
+        console.log("Points: ", taxonPoints[10111]);
+        return taxonPoints;
+    } catch (error) {
+        console.error('Error executing query:', error);
+        throw error;
+    }
+};
+
+exports.getPointsArrayOfSgb = async () => {
+    let connection;
+    try {
+        connection = await Config.getConnection();
+        const queryPromise = util.promisify(connection.query).bind(connection);
+        const rows = await queryPromise(
+            `SELECT A.id, A.contract_address, A.nft_id, A.abbreviation, A.points, A.category_id, B.name as category_name  FROM sgb_nfts A LEFT JOIN sgb_nft_types B ON A.category_id = B.id`
+        );
+        if (!rows) return [];
+
+        const pointsArray = rows.map(row => ({
+            id: row.id,
+            contract_address: row.contract_address.toLowerCase(),
+            nft_id: row.nft_id,
+            abbreviation: row.abbreviation,
+            points: row.points,
+            category_id: row.category_id,
+            category_name: row.category_name
+        }));
+        return pointsArray;
+    } catch (error) {
+        console.error('Error executing query:', error);
+        throw error;
+    }
+}

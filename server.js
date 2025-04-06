@@ -46,4 +46,4 @@ process.on("SIGTERM", () => {
 
 startSocketService(app);
 
-// updateXRPNftListByContractId(process.env.WALLET_ISSUER);
+// updateXRPNftListByIssuer(process.env.WALLET_ISSUER);

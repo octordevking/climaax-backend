@@ -17,8 +17,10 @@ router.get("/account/old", xummController.getAccountOldValue);
 router.get("/signin-xumm", xummController.signinXumm);
 router.get("/get-payload", xummController.getPayload);
 router.get("/check-sign", xummController.checkSign);
-router.get("/nfts/account-nfts", nftController.getAccountNfts);
+// router.get("/nfts/account-nfts", nftController.getAccountNfts);
 router.get("/nfts/nftlist", nftController.getNftList);
 router.get("/nfts/verified-nfts", nftController.getVerifiedNfts);
+router.get("/nfts/sgb/nftlist", nftController.getValidatedSgbNfts);
+router.get("/nfts/sgb/verified-nfts", nftController.getVerifiedSgbNfts);
 
 module.exports = router;
