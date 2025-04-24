@@ -1,6 +1,5 @@
 const xrpl = require('xrpl');
 const Config = require('./config');
-const { response } = require('express');
 const {getExistingNftsIds, updateBurnedNfts, insertNfts, getPointsByTaxonId, getPointsArrayOfSgb} = require('../models/nftModel');
 const { Client } = xrpl;
 const client = new Client(Config.XRP_RPC);
@@ -62,7 +61,6 @@ exports.getIssuerWallet = () => {
   return Wallet.fromSeed(process.env.ISSUER_SEED);
 }
 
-// DESC: hot_wallet requests `tokenAmount` of `tokenSymbol` from `issuer`
 exports.setTrustLine = async ({ issuer, tokenSymbol, tokenAmount }) => {
   const hot_wallet = this.getTreasuryWallet();
 
@@ -89,7 +87,6 @@ exports.setTrustLine = async ({ issuer, tokenSymbol, tokenAmount }) => {
   }
 }
 
-// DESC: signer wallet sends `tokenAmount` of `tokenSymbol` minted by `issuer` to `toAddress`
 exports.sendToken = async ({ issuer, tokenSymbol, tokenAmount, signer, toAddress }) => {
   const amount = (tokenAmount * 1000000).toFixed(0) / 1000000;
 
@@ -122,13 +119,34 @@ exports.sendToken = async ({ issuer, tokenSymbol, tokenAmount, signer, toAddress
 
 exports.getBalance = async (address) => {
   try {
-    const balances = await client.request({
-      command: "account_lines",
-      account: address,
-      ledger_index: "validated"
-    });
+    let balances = [];
+    let marker = null;
 
-    return balances.result;
+    do {
+      const requestBody = marker ? {
+        command: "account_lines",
+        account: address,
+        ledger_index: "validated",
+        api_version: 2,
+        marker: marker,
+      } : {
+        command: "account_lines",
+        account: address,
+        ledger_index: "validated",
+        api_version: 2
+      };
+
+      if (marker) {
+        requestBody.marker = marker;
+      }
+
+      const response = await client.request(requestBody);
+
+      balances.push(...response.result.lines);
+      marker = response.result.marker || null;
+    } while (marker);
+
+    return balances;
   } catch (error) {
     console.error("Error fetching account balances:", error);
     throw new Error("Failed to fetch account balances");
@@ -294,7 +312,10 @@ exports.getVerifiedNftsOfAccount = async (accountAddress) => {
     }
   } catch (err){
     console.error("Error fetching NFTs of account", err);
-    throw new Error(err.message);
+    return {
+      account: accountAddress,
+      error: err.message,
+    }
   }
 };
 
@@ -517,3 +538,35 @@ exports.updateSGBNftListByIssuer = async (issuerAddress) => {
   }
 };
 
+exports.getAccountInfo = async (address) => {
+  try {
+    const requestBody = {
+      command: "account_info",
+      account: address,
+    }
+
+    const response = await client.request(requestBody);
+    return response;
+  } catch (error) {
+    throw new Error(error.message);
+  }
+}
+
+exports.getBookOffers = async () => {
+  try{
+    const reqBody = {
+      command: "book_offers",
+      taker_gets : {
+          currency : process.env.TOKEN_SYMBOL,
+          issuer : process.env.TOKEN_ISSUER
+      },
+      taker_pays : {
+          currency : "XRP"
+      }
+    };
+    const response = await client.request(reqBody);
+    return response.result.offers;
+  } catch (error){
+    throw new Error(error.message);
+  }
+}

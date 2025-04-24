@@ -31,15 +31,6 @@ exports.getVerifiedNfts = Utils.catchAsync( async (req, res) => {
     }
 });
 
-exports.getValidatedSgbNfts = Utils.catchAsync(async (req, res) => {
-    try{
-
-    }
-    catch (error){
-
-    }
-});
-
 exports.getVerifiedSgbNfts = Utils.catchAsync(async (req, res) => {
     try{
         const sgbAddress = req.query.sgbAddress;

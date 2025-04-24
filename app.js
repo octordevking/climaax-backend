@@ -3,7 +3,6 @@ const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const compression = require("compression");
-const xss = require("xss-clean");
 const apiRouter = require("./routes/apiRoutes.js");
 const { runRewardProcessing } = require("./controllers/apiController.js");
 
@@ -17,17 +16,12 @@ app.options("*", cors()); // app.options() is just like app.get or post etc.
 
 app.use(cookieParser()); // TO READ COOKIES SENT FROM CLIENT
 
-// DATA SANITIZATION (CLEARNING) AGAINST XSS (CROSS SITE SCRIPTING ATTACK)
-app.use(xss());
-
 // USE THIS MIDDLEWARE TO COMPRESS TEXT RESPONSE THAT WE SENT TO CLIENTS
 app.use(compression());
 
 if (process.env.NODE_ENV === "development") {
     app.use(morgan("dev"));
 }
-
-runRewardProcessing();
 
 app.use("/api/v1", apiRouter);
 

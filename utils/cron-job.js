@@ -1,12 +1,7 @@
 const cron = require("node-cron");
-const Utils = require("../utils/utils.js");
+// const Utils = require("../utils/utils.js");
+const {checkPendingStake} =  require("../controllers/apiController.js");
 
 cron.schedule("*/5 * * * *", async () => {
-  // try {
-  //   console.log("Starting to fetch all validated NFTs by cron-job");
-  //   const issuerAddress = process.env.WALLET_ISSUER;
-  //   await Utils.updateXRPNftListByIssuer(issuerAddress);
-  // } catch (error) {
-  //   console.error("Error fetching all validated NFTs", error);
-  // };
+  checkPendingStake();
 });

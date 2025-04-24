@@ -8,7 +8,9 @@ const router = express.Router();
 router.post('/stake', apiController.saveStake);
 router.post('/stake/payload', apiController.getStakePayload);
 router.post('/swap', apiController.swap);
+router.get('/swap/trade-history', apiController.getTradeHistory)
 router.post('/swap/payload', apiController.getSwapPayload);
+router.get('swap/check-conditions', apiController.getSwapConditions);
 router.post('/trustline', apiController.getTrustline);
 router.get('/stake/logs', apiController.getStakeLogs);
 router.get('/stake/options', apiController.getStakeOptions);
@@ -20,7 +22,7 @@ router.get("/check-sign", xummController.checkSign);
 // router.get("/nfts/account-nfts", nftController.getAccountNfts);
 router.get("/nfts/nftlist", nftController.getNftList);
 router.get("/nfts/verified-nfts", nftController.getVerifiedNfts);
-router.get("/nfts/sgb/nftlist", nftController.getValidatedSgbNfts);
+// router.get("/nfts/sgb/nftlist", nftController.getValidatedSgbNfts);
 router.get("/nfts/sgb/verified-nfts", nftController.getVerifiedSgbNfts);
 
 module.exports = router;

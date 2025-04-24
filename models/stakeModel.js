@@ -47,10 +47,12 @@ exports.queryStakeLogsByAddress = async (address) => {
     try {
         connection = await Config.getConnection();
         const queryPromise = util.promisify(connection.query).bind(connection);
-        const results = await queryPromise(`SELECT * FROM transactions 
-            INNER JOIN stake_options ON transactions.stake_type = stake_options.id
-            WHERE from_address = ?
-        `, [address]);
+        const results = await queryPromise(
+            `SELECT * FROM transactions 
+            LEFT JOIN stake_options ON transactions.stake_option = stake_options.id
+            WHERE transactions.from_address = ?`, 
+            [address]
+        );
         return results;
     } catch (error) {
         console.error('Error executing query:', error);
@@ -67,8 +69,8 @@ exports.queryAllStakeLogs = async () => {
     try {
         connection = await Config.getConnection();
         const queryPromise = util.promisify(connection.query).bind(connection);
-        const results = await queryPromise(`SELECT * FROM transactions 
-            INNER JOIN stake_options ON transactions.stake_type = stake_options.id
+        const results = await queryPromise(`SELECT A.*, B.* FROM transactions A
+            LEFT JOIN stake_options B ON A.stake_option = B.id
             WHERE flag = 0 AND reward_trx IS NULL
         `);
         return results;
@@ -108,16 +110,18 @@ exports.updateStakeLog = async (trx_hash, reward_trx, amount) => {
 
 exports.saveNewStake = async ({ txid, address, amount, option }) => {
     let connection;
+    const now = moment().tz("Africa/Abidjan");
     try {
         connection =await Config.getConnection();
         const queryPromise = util.promisify(connection.query).bind(connection);
         const results = await queryPromise(`
-            INSERT INTO transactions (trx_hash, amount, stake_type, from_address, to_address) VALUES (?,?,?,?,?)`, [
+            INSERT INTO transactions (trx_hash, amount, stake_option, from_address, to_address, created_at) VALUES (?,?,?,?,?,?)`, [
             txid,
             amount,
             option,
             address,
-            process.env.TREASURY_ACCOUNT
+            process.env.TREASURY_ACCOUNT,
+            now.toISOString(),
         ]);
         return results;
     } catch (error) {

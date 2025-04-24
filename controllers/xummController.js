@@ -6,6 +6,8 @@ const Config = require("../utils/config");
 
 const xummSdk = new XummSdk(process.env.XUMM_API_KEY, process.env.XUMM_API_SECRET);
 
+
+
 exports.signinXumm = Utils.catchAsync(async (req, res) => {
     const isMobile = JSON.parse(req.query.isMobile);
     const request = {
@@ -58,13 +60,17 @@ exports.checkSign = Utils.catchAsync(async (req, res) => {
 });
 
 exports. getAccountValue = Utils.catchAsync(async (req, res) => {
+    console.log("Wallet:", Utils.getTreasuryWallet().address);
     try {
         const address = req.query.address;
-        const results = await Utils.getBalance(address);
-
-        const tokens = results.lines;
-        let aax = tokens.filter(token => token.currency === process.env.TOKEN_SYMBOL && token.account === process.env.TOKEN_ISSUER);
-
+        const tokens = await Utils.getBalance(address);
+        const account_info = await Utils.getAccountInfo(address);
+        const xrpBalance = account_info.result.account_data.Balance;
+        let aax = [];
+        if (tokens.length > 0){
+            aax = tokens.filter(token => token.currency === process.env.TOKEN_SYMBOL && token.account === process.env.TOKEN_ISSUER);
+        }
+        const trustline = (aax.length > 0)
         if (aax.length === 0) {
             aax = [{
                 balance: 0,
@@ -74,11 +80,16 @@ exports. getAccountValue = Utils.catchAsync(async (req, res) => {
 
         res.status(200).json({
             status: 200,
-            result: aax[0],
+            result: {
+                aax: aax[0],
+                xrp: xrpBalance,
+                trustline: trustline
+            },
             error: null
         });
     } catch (error) {
-        res.status(200).json({
+        console.error(error);
+        res.status(500).json({
             status: 500,
             result: null,
             error: error.message
@@ -108,10 +119,10 @@ exports.getAccountOldValue = Utils.catchAsync(async (req, res) => {
 });
 
 exports.getStakePayload = async (address, amount, selectStake, isMobile) => {
-    const requestJson = {
+    const txJson = {
         TransactionType: 'Payment',
-        Destination: process.env.TREASURY_ACCOUNT,
         Account: address,
+        Destination: process.env.TREASURY_ACCOUNT,
         Amount: {
             currency: process.env.TOKEN_SYMBOL,
             issuer: process.env.TOKEN_ISSUER,
@@ -119,14 +130,14 @@ exports.getStakePayload = async (address, amount, selectStake, isMobile) => {
         },
         Memos: [{
             Memo: {
-                MemoType: Buffer.from('string').toString('hex').toUpperCase(),
+                MemoType: Buffer.from('Staking').toString('hex').toUpperCase(),
                 MemoData: Buffer.from(`Staked ${amount} ${process.env.TOKEN_SYMBOL} for ${selectStake.duration} months.`).toString('hex').toUpperCase(),
             },
         }],
     };
 
     const request = {
-        txjson: requestJson,
+        txjson: txJson,
         options: {
             expire: Config.payloadExpireTime,
             // return_url: isMobile
@@ -187,9 +198,7 @@ exports.getTrustlinePayload = async (address, isMobile) => {
         async (result) => {
             if (result.data.signed) {
                 result.resolve("Ok");
-            }
-
-            if (result.data.expires_in_seconds <= 0) {
+            } if (result.data.expires_in_seconds <= 0) {
                 result.resolve("Ok");
             }
         }
@@ -202,54 +211,56 @@ exports.getTrustlinePayload = async (address, isMobile) => {
     }
 };
 
-exports.getSwapPayload = async (address, amount, isMobile) => {
-    const requestJson = {
-        TransactionType: 'Payment',
-        Destination: process.env.TREASURY_ACCOUNT,
-        Account: address,
-        Amount: {
-            currency: process.env.TOKEN_SYMBOL,
-            issuer: process.env.OLD_TOKEN_ISSUER,
-            value: amount,
-        },
-        Memos: [{
-            Memo: {
-                MemoType: Buffer.from('string').toString('hex').toUpperCase(),
-                MemoData: Buffer.from(`Swapped ${amount} ${process.env.TOKEN_SYMBOL} with the new tokens`).toString('hex').toUpperCase(),
+exports.getSwapPayload = async (address, swapAmount, toAmount, isMobile) => {
+    try {
+        const offerCreateTx = {
+            TransactionType: "OfferCreate",
+            Account: address,
+            TakerGets: swapAmount,
+            TakerPays: {
+                currency: process.env.TOKEN_SYMBOL,
+                issuer: process.env.TOKEN_ISSUER,
+                value: parseFloat(toAmount).toString(),
             },
-        }],
-    };
+            Flags: 0x00040000
+        };
+        console.log(offerCreateTx);
 
-    const request = {
-        txjson: requestJson,
-        options: {
-            expire: Config.payloadExpireTime,
-            // return_url: isMobile
-            //     ? {
-            //         app: Config.url.xummRedirect,
-            //     }
-            //     : {},
-        },
-    };
-
-    const payload = await xummSdk.payload.createAndSubscribe(
-        request,
-        async (result) => {
-            if (result.data.signed) {
-                console.log("swapBalance log - 4 : ", result.data);
-                result.resolve("Ok");
-            }
-
-            if (result.data.expires_in_seconds <= 0) {
-                console.log("swapBalance log - 5 : ", result.data);
-                result.resolve("Ok");
-            }
+        const request = {
+            txjson: offerCreateTx,
+            options: {
+                expire: Config.payloadExpireTime,
+                // return_url: isMobile
+                //     ? {
+                //         app: Config.url.xummRedirect,
+                //     }
+                //     : {},
+            },
         }
-    );
 
-    if (payload.created.uuid) {
-        return payload.created;
-    } else {
-        return null;
+        const payload = await xummSdk.payload.createAndSubscribe(
+            request,
+            async (result) => {
+                if (result.data.signed) {
+                    console.log("swapBalance log - 4 : ", result.data);
+                    result.resolve("Ok");
+                }
+
+                if (result.data.expires_in_seconds <= 0) {
+                    console.log("swapBalance log - 5 : ", result.data);
+                    result.resolve("Ok");
+                }
+            }
+        );
+
+        if (payload.created.uuid) {
+            return payload.created;
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error("Error in getSwapPayload: ", error);
+        throw new Error("Failed to create swap payload");
     }
+
 };
