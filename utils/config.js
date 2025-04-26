@@ -1,26 +1,33 @@
-const mysql = require('mysql');
+const mysql = require('mysql2');
 const util =require('util');
 const dotenv = require('dotenv');
+const path = require('path');
+const fs = require('fs');
 
 dotenv.config();
 
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
+    port: process.env.DB_PORT,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     waitForConnections: true,
     connectionLimit: 30,
-    queueLimit: 100
+    queueLimit: 100,
+    ssl: {
+        rejectUnauthorized: true,
+        ca: fs.readFileSync(path.join(__dirname, 'ca.pem'))  // adjust if file is elsewhere
+    }
 });
 
 const getConnection = util.promisify(pool.getConnection).bind(pool);
 // Increase max_allowed_packet after connection
-(async () => {
-    const connection = await getConnection();
-    const queryPromise = util.promisify(connection.query).bind(connection);
-    await queryPromise(`SET GLOBAL max_allowed_packet=1073741824;`);
-})();
+// (async () => {
+//     const connection = await getConnection();
+//     const queryPromise = util.promisify(connection.query).bind(connection);
+//     await queryPromise(`SET SESSION max_allowed_packet=1073741824;`);
+// })();
 
 const TOYBOX_TAXONS = new Set([
     10106, 10107, 10108, 10109, 10110, 10111, // TB1X – TB6X
