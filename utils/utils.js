@@ -56,10 +56,10 @@ exports.getTreasuryWallet = () => {
   return Wallet.fromSeed(process.env.TREASURY_SEED);
 }
 
-exports.getIssuerWallet = () => {
-  const { Wallet } = xrpl;
-  return Wallet.fromSeed(process.env.ISSUER_SEED);
-}
+// exports.getIssuerWallet = () => {
+//   const { Wallet } = xrpl;
+//   return Wallet.fromSeed(process.env.ISSUER_SEED);
+// }
 
 exports.setTrustLine = async ({ issuer, tokenSymbol, tokenAmount }) => {
   const hot_wallet = this.getTreasuryWallet();
