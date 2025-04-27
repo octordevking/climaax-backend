@@ -9,26 +9,35 @@ const xummSdk = new XummSdk(process.env.XUMM_API_KEY, process.env.XUMM_API_SECRE
 
 
 exports.signinXumm = Utils.catchAsync(async (req, res) => {
-    const isMobile = JSON.parse(req.query.isMobile);
-    const request = {
-        txjson: { TransactionType: "SignIn" },
-        options: {
-            expire: Config.payloadExpireTime,
-            return_url: isMobile
-                ? {
-                    app: Config.url.xummRedirect,
-                }
-                : {},
-        },
-    };
+    try {
+        const isMobile = JSON.parse(req.query.isMobile);
+        const request = {
+            txjson: { TransactionType: "SignIn" },
+            options: {
+                expire: Config.payloadExpireTime,
+                return_url: isMobile
+                    ? {
+                        app: Config.url.xummRedirect,
+                    }
+                    : {},
+            },
+        };
 
-    const payload = await xummSdk.payload.create(request);
+        const payload = await xummSdk.payload.create(request);
 
-    res.status(200).json({
-        status: 200,
-        result: payload,
-        error: null
-    });
+        res.status(200).json({
+            status: 200,
+            result: payload,
+            error: null
+        });
+    } catch (error) {
+        console.error("Error in signinXumm: ", error);
+        res.status(500).json({
+            status: 500,
+            result: null,
+            error: error.message
+        });
+    }
 });
 
 exports.getPayload = Utils.catchAsync(async (req, res) => {
