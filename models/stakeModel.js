@@ -121,7 +121,7 @@ exports.saveNewStake = async ({ txid, address, amount, option }) => {
             option,
             address,
             process.env.TREASURY_ACCOUNT,
-            now.toISOString(),
+            now.toISOString().slice(0, 19).replace('T', ' '),
         ]);
         return results;
     } catch (error) {
