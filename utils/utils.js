@@ -1,8 +1,9 @@
 const xrpl = require('xrpl');
 const Config = require('./config');
-const {getExistingNftsIds, updateBurnedNfts, insertNfts, getPointsByTaxonId, getPointsArrayOfSgb} = require('../models/nftModel');
+const {getExistingNftsIds, updateBurnedNfts, insertNfts, getPointsByTaxonId, getPointsArrayOfSgb, getRewardsState, insertRewardsHistory} = require('../models/nftModel');
 const { Client } = xrpl;
 const client = new Client(Config.XRP_RPC);
+const moment = require('moment');
 
 async function connectClient() {
   if (!client.isConnected()) {
@@ -88,32 +89,47 @@ exports.setTrustLine = async ({ issuer, tokenSymbol, tokenAmount }) => {
 }
 
 exports.sendToken = async ({ issuer, tokenSymbol, tokenAmount, signer, toAddress }) => {
-  const amount = (tokenAmount * 1000000).toFixed(0) / 1000000;
+  try{
+    const amount = (tokenAmount * 1000000).toFixed(0) / 1000000;
 
-  const send_token_tx = {
-    TransactionType: "Payment",
-    Account: signer.address,
-    Destination: toAddress,
-    DestinationTag: getNextDestinationTag(),
-    Amount: {
-      currency: tokenSymbol,
-      value: amount.toString(),
-      issuer: issuer
-    },
+    const send_token_tx = {
+      TransactionType: "Payment",
+      Account: signer.address,
+      Destination: toAddress,
+      DestinationTag: getNextDestinationTag(),
+      Amount: {
+        currency: tokenSymbol,
+        value: amount.toString(),
+        issuer: issuer
+      },
+    }
+
+    const pay_prepared = await client.autofill(send_token_tx)
+    const pay_signed = signer.sign(pay_prepared)
+
+    console.log(`Sending ${tokenAmount} ${tokenSymbol} to ${toAddress}...`)
+    const pay_result = await client.submitAndWait(pay_signed.tx_blob)
+
+    if (pay_result.result.meta.TransactionResult == "tesSUCCESS") {
+      console.log(`Transaction succeeded: https://xrpscan.com/tx/${pay_signed.hash}`)
+      return {
+        success:true,
+        txHash: pay_signed.hash
+      };
+    } else {
+      console.log(`Error sending transaction: ${pay_result.result.meta.TransactionResult}`)
+      return {
+        success: false,
+        txHash: pay_signed.hash,
+        error: "Transaction sent but not successful"
+      }
+    }
   }
-
-  const pay_prepared = await client.autofill(send_token_tx)
-  const pay_signed = signer.sign(pay_prepared)
-
-  console.log(`Sending ${tokenAmount} ${tokenSymbol} to ${toAddress}...`)
-  const pay_result = await client.submitAndWait(pay_signed.tx_blob)
-
-  if (pay_result.result.meta.TransactionResult == "tesSUCCESS") {
-    console.log(`Transaction succeeded: https://xrpscan.com/tx/${pay_signed.hash}`)
-    return pay_signed.hash;
-  } else {
-    console.log(`Error sending transaction: ${pay_result.result.meta.TransactionResult}`)
-    return null;
+  catch (error) {
+    return {
+      success: false,
+      error: error.message
+    }
   }
 }
 
@@ -286,10 +302,14 @@ exports.getVerifiedNftsOfAccount = async (accountAddress) => {
       };
     };
 
+    let userVerified = false;
     const nfts = nftLists.map((nft) => {
       const taxonId = nft.NFTokenTaxon;
       const points = taxonPoints[taxonId]; 
       const isVerified = points !== undefined;
+      if (isVerified && !userVerified){
+        userVerified = true;
+      }
       return {
         nft_id: nft.NFTokenID,
         uri: nft.URI,
@@ -300,6 +320,7 @@ exports.getVerifiedNftsOfAccount = async (accountAddress) => {
     });
 
     const { totalPoints, basePoints, bonusPoints } = await calculateXRPNftPoints(nfts);
+    
     return {
       account: accountAddress,
       account_nfts: nfts,
@@ -570,3 +591,55 @@ exports.getBookOffers = async () => {
     throw new Error(error.message);
   }
 }
+
+exports.checkRewardsState = async () => {
+  const xrp_addresses = await getRewardsState();
+  console.log("Checking rewards state...");
+  if (xrp_addresses.length === 0) {
+    console.log("No addresses found in the rewards state table");
+    return;
+  }
+  let insertQueryArray = [];
+
+  for (const row of xrp_addresses) {
+    const points = (row.xrp_verified === 1 ? row.xrp_verified_points : 0) + (row.sgb_verified === 1 ? row.sgb_verified_points : 0);
+    console.log("Calculated points: ", points);
+    const txResult = await this.sendToken({
+      issuer: process.env.TOKEN_ISSUER,
+      tokenSymbol: process.env.TOKEN_SYMBOL,
+      tokenAmount: points * 0.01,
+      signer: this.getTreasuryWallet(),
+      toAddress: row.xrp_address,
+    });
+
+    console.log("Transaction result: ", txResult);
+    insertQueryArray.push([
+      (!txResult.txHash ? 'Not sent' : txResult.txHash),
+      row.xrp_address,
+      row.id,
+      points * 0.01,
+      txResult.success,
+      (!txResult.error ? '' : txResult.error),
+      moment().tz("Africa/Abidjan").format("YYYY-MM-DD HH:mm:ss"),
+    ]);
+
+    await delay(1000);
+  }
+  console.log(insertQueryArray);
+  if(insertQueryArray.length === 0) {
+    console.log("No transactions to insert");
+    return;
+  }
+  
+  await insertRewardsHistory(insertQueryArray)
+    .then(() => {
+      console.log("Rewards history updated successfully");
+    })
+    .catch((error) => {
+      console.error("Error updating rewards history:", error);
+    });
+}
+
+const delay = async (ms) => {
+  return new Promise(resolve => setTimeout(resolve, ms));
+};

@@ -1,7 +1,7 @@
 const util = require("util");
 const dotenv = require("dotenv");
 const Config = require("../utils/config");
-const { off } = require("process");
+const moment = require('moment');
 
 dotenv.config();
 
@@ -133,5 +133,157 @@ exports.getPointsArrayOfSgb = async () => {
     } catch (error) {
         console.error('Error executing query:', error);
         throw error;
+    }
+}
+
+exports.setXrpVerifiedStatus = async (address, points, verified) => {
+    let connection;
+    try {
+        if (verified) {
+            const existanceCheck = await exports.getXrpVerifiedStatus(address);
+            const currentDateString = moment().tz("Africa/Abidjan").format("YYYY-MM-DD");
+            connection = await Config.getConnection();
+            const queryPromise = util.promisify(connection.query).bind(connection);
+            
+            if (existanceCheck.length > 0) {
+                const results = await queryPromise(
+                    `UPDATE verified_accounts SET xrp_verified_date = ?, xrp_verified_points = ? WHERE xrp_address = ?`, 
+                    [currentDateString, points, address]
+                );
+                return results;
+            } else {
+                const results = await queryPromise(
+                    `INSERT INTO verified_accounts (xrp_verified_date, xrp_verified_points, xrp_address) VALUES (?, ?, ?)`, 
+                    [currentDateString, points, address]
+                );
+                return results;
+            }
+        }
+    } catch (error) {
+        console.error('Error executing query:', error);
+        throw error;
+    } finally {
+        if (connection) {
+            connection.release(); // Release the connection back to the pool
+        }
+    }
+}
+
+exports.getXrpVerifiedStatus = async (address) => {
+    let connection;
+    try {
+        connection = await Config.getConnection();
+        const queryPromise = util.promisify(connection.query).bind(connection);
+        const results = await queryPromise(
+            `SELECT xrp_verified_date, xrp_verified_points FROM verified_accounts WHERE xrp_address = ?`, 
+            [address]
+        );
+        return results;
+    } catch (error) {
+        console.error('Error executing query:', error);
+        throw error;
+    } finally {
+        if (connection) {
+            connection.release(); // Release the connection back to the pool
+        }
+    }
+}
+
+exports.setSgbVerifiedStatus = async (address, points, xrpAddress) => {
+    let connection;
+    try {
+        const existanceCheck = await exports.getSgbVerifiedStatus(address);
+        const currentDateString = moment().tz("Africa/Abidjan").format("YYYY-MM-DD");
+        connection = await Config.getConnection();
+        const queryPromise = util.promisify(connection.query).bind(connection);
+
+        if (existanceCheck.length > 0) {
+            const res = await queryPromise(
+                `UPDATE verified_accounts SET sgb_verified_date = ?, sgb_verified_points = ? WHERE sgb_address = ? AND (YEAR(sgb_verified_date) <> YEAR(CURDATE()) OR MONTH(sgb_verified_date) <> MONTH(CURDATE()))`, 
+                [currentDateString, points, address]
+            );
+            return {
+                success: true,
+                data: res
+            }
+        }
+
+        if (!xrpAddress) {
+            return { success: false, message: "XRP address is required for new SGB account." };
+        }
+        const res = await queryPromise(
+            `UPDATE verified_accounts SET sgb_address = ?, sgb_verified_date = ?, sgb_verified_points = ? WHERE xrp_address = ?`, 
+            [address, currentDateString, points, xrpAddress]
+        );
+        return {
+            success: true,
+            data: res
+        };
+    } catch (error) {
+        console.error('Error set sgb verified status query:', error);
+        throw error;
+    } finally {
+        if (connection) connection.release();
+    }
+};
+
+exports.getSgbVerifiedStatus = async (address) => {
+    let connection;
+    try {
+        connection = await Config.getConnection();
+        const queryPromise = util.promisify(connection.query).bind(connection);
+        const results = await queryPromise(
+            `SELECT sgb_verified_date, sgb_verified_points FROM verified_accounts WHERE sgb_address = ?`, 
+            [address]
+        );
+        return results;
+    } catch (error) {
+        console.error('Error executing query:', error);
+        throw error;
+    } finally {
+        if (connection) {
+            connection.release(); // Release the connection back to the pool
+        }
+    }
+}
+
+exports.getRewardsState = async () => {
+    let connection;
+    try {
+        connection = await Config.getConnection();
+        const oneMonthAgo = moment().subtract(1, 'months').tz("Africa/Abidjan");
+        const queryPromise = util.promisify(connection.query).bind(connection);
+        console.log(oneMonthAgo, oneMonthAgo.year(), oneMonthAgo.month(), oneMonthAgo.year(), oneMonthAgo.month())
+        const results = await queryPromise(
+            `SELECT id, xrp_address, xrp_verified_points, sgb_verified_points, (YEAR(xrp_verified_date) = ? AND MONTH(xrp_verified_date) = ?) as xrp_verified, (YEAR(sgb_verified_date) = ? AND MONTH(sgb_verified_date) = ?) as sgb_verified FROM verified_accounts WHERE (YEAR(xrp_verified_date) = ? AND MONTH(xrp_verified_date) = ? ) OR (YEAR(sgb_verified_date) = ? AND MONTH(sgb_verified_date) = ? )`,
+            [oneMonthAgo.year(), oneMonthAgo.month() + 1, oneMonthAgo.year(), oneMonthAgo.month() + 1, oneMonthAgo.year(), oneMonthAgo.month() + 1, oneMonthAgo.year(), oneMonthAgo.month() + 1]
+        );
+        return results;
+    } catch (error) {
+        console.error('Error executing query:', error);
+        throw error;
+    } finally {
+        if (connection) {
+            connection.release(); // Release the connection back to the pool
+        }
+    }
+}
+
+exports.insertRewardsHistory = async (query) => {
+    let connection;
+    try {
+        connection = await Config.getConnection();
+        const queryPromise = util.promisify(connection.query).bind(connection);
+        await queryPromise(
+            `INSERT INTO reward_history (txn_hash, to_address, verified_account_id, amount, success, note, timestamp) VALUES  ?`, 
+            [query]
+        );
+    } catch (error) {
+        console.error('Error executing query:', error);
+        throw error;
+    } finally {
+        if (connection) {
+            connection.release(); // Release the connection back to the pool
+        }
     }
 }

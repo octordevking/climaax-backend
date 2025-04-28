@@ -70,61 +70,58 @@ exports.saveStake = Utils.catchAsync(async (req, res) => {
   }
 });
 
-exports.swap = Utils.catchAsync(async (req, res) => {
-  try {
-    const { txid, address, amount } = req.body;
+// exports.swap = Utils.catchAsync(async (req, res) => {
+//   try {
+//     const { txid, address, amount } = req.body;
 
-    if (!txid)
-      throw new Error("Transaction is invalid");
-    if (!address)
-      throw new Error("Missing address");
-    if (!amount || amount < 1)
-      throw new Error("Invalid amount");
+//     if (!txid)
+//       throw new Error("Transaction is invalid");
+//     if (!address)
+//       throw new Error("Missing address");
+//     if (!amount || amount < 1)
+//       throw new Error("Invalid amount");
 
-    const result_check = await Utils.checkTransactionValidity(txid, address, amount, true);
-    if (result_check.error) {
-      throw new Error(result_check.error);
-    }
+//     const result_check = await Utils.checkTransactionValidity(txid, address, amount, true);
+//     if (result_check.error) {
+//       throw new Error(result_check.error);
+//     }
     
-    const hasTrustline = await checkNewTrustline(address);
-    if (!hasTrustline) throw new Error("Please set Trustline first");
+//     const hasTrustline = await checkNewTrustline(address);
+//     if (!hasTrustline) throw new Error("Please set Trustline first");
 
-    await StakeModel.saveSwap({ txid, address, amount });
+//     await StakeModel.saveSwap({ txid, address, amount });
 
-    const tx_hash = await Utils.sendToken({
-      issuer: process.env.TOKEN_ISSUER,
-      tokenSymbol: process.env.TOKEN_SYMBOL,
-      tokenAmount: amount,
-      signer: Utils.getTreasuryWallet(),
-      toAddress: address
-    });
+//     const tx_hash = await Utils.sendToken({
+//       issuer: process.env.TOKEN_ISSUER,
+//       tokenSymbol: process.env.TOKEN_SYMBOL,
+//       tokenAmount: amount,
+//       signer: Utils.getTreasuryWallet(),
+//       toAddress: address
+//     });
 
-    if (tx_hash) {
-      await StakeModel.updateSwap({ txid, tx_hash });
-    }
+//     if (tx_hash) {
+//       await StakeModel.updateSwap({ txid, tx_hash });
+//     }
 
-    res.status(200).json({
-      status: 200,
-      result: true,
-      error: null
-    });
-  } catch (error) {
-    res.status(400).json({
-      status: 400,
-      result: null,
-      error: error.message
-    });
-  }
-});
+//     res.status(200).json({
+//       status: 200,
+//       result: true,
+//       error: null
+//     });
+//   } catch (error) {
+//     res.status(400).json({
+//       status: 400,
+//       result: null,
+//       error: error.message
+//     });
+//   }
+// });
 
 exports. getStakePayload = Utils.catchAsync(async (req, res) => {
   const { address, amount, option, isMobile } = req.body;
 
   if (!address)
     throw new Error("Missing address");
-
-  // if (!amount || amount < 1 || amount > 1000000)
-  //   throw new Error("Invalid amount");
 
   const stakeOptions = await StakeModel.queryPossibleStakeOptions();
   const selectedOption = stakeOptions.find(item => item.id === option);
@@ -259,8 +256,10 @@ exports.checkPendingStake = async () => {
             toAddress: stake.from_address
           });
 
-          if (tx_hash) {
-            await StakeModel.updateStakeLog(stake.trx_hash, tx_hash, amount);
+          if (tx_hash.success) {
+            await StakeModel.updateStakeLog(stake.trx_hash, tx_hash.txHash, amount);
+          } else {
+            console.error("Error sending token:", tx_hash.error);
           }
         }
       }

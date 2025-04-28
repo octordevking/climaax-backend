@@ -15,10 +15,10 @@ const pool = mysql.createPool({
     waitForConnections: true,
     connectionLimit: 30,
     queueLimit: 100,
-    ssl: {
-        rejectUnauthorized: true,
-        ca: fs.readFileSync(path.join(__dirname, 'ca.pem'))  // adjust if file is elsewhere
-    }
+    // ssl: {
+    //     rejectUnauthorized: true,
+    //     ca: fs.readFileSync(path.join(__dirname, 'ca.pem'))  // adjust if file is elsewhere
+    // }
 });
 
 const getConnection = util.promisify(pool.getConnection).bind(pool);
