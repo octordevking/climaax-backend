@@ -149,11 +149,11 @@ exports.getStakePayload = async (address, amount, selectStake, isMobile) => {
         txjson: txJson,
         options: {
             expire: Config.payloadExpireTime,
-            // return_url: isMobile
-            //     ? {
-            //         app: Config.url.xummRedirect,
-            //     }
-            //     : {},
+            return_url: isMobile
+                ? {
+                    app: Config.url.xummRedirect,
+                }
+                : {},
         },
     };
 
@@ -194,11 +194,11 @@ exports.getTrustlinePayload = async (address, isMobile) => {
         txjson: requestJson,
         options: {
             expire: Config.payloadExpireTime,
-            // return_url: isMobile
-            //     ? {
-            //         app: Config.url.xummRedirect,
-            //     }
-            //     : {},
+            return_url: isMobile
+                ? {
+                    app: Config.url.xummRedirect,
+                }
+                : {},
         },
     };
 
@@ -239,11 +239,11 @@ exports.getSwapPayload = async (address, swapAmount, toAmount, isMobile) => {
             txjson: offerCreateTx,
             options: {
                 expire: Config.payloadExpireTime,
-                // return_url: isMobile
-                //     ? {
-                //         app: Config.url.xummRedirect,
-                //     }
-                //     : {},
+                return_url: isMobile
+                    ? {
+                        app: Config.url.xummRedirect,
+                    }
+                    : {},
             },
         }
 
