@@ -1,6 +1,6 @@
 const xrpl = require('xrpl');
 const Config = require('./config');
-const {getExistingNftsIds, updateBurnedNfts, insertNfts, getPointsByTaxonId, getPointsArrayOfSgb, getRewardsState, insertRewardsHistory} = require('../models/nftModel');
+const {getExistingNftsIds, updateBurnedNfts, insertNfts, getPointsByTaxonId, getPointsArrayOfSgb, getRewardsState, insertRewardsHistory, getTotalPoints} = require('../models/nftModel');
 const { Client } = xrpl;
 const client = new Client(Config.XRP_RPC);
 const moment = require('moment');
@@ -601,13 +601,18 @@ exports.checkRewardsState = async () => {
   }
   let insertQueryArray = [];
 
+  const totalPoints = await getTotalPoints();
+
+  const poolAmount = await this.getPoolAmount();
+
   for (const row of xrp_addresses) {
     const points = (row.xrp_verified === 1 ? row.xrp_verified_points : 0) + (row.sgb_verified === 1 ? row.sgb_verified_points : 0);
     console.log("Calculated points: ", points);
+    const amount = points / totalPoints * poolAmount * 0.01;
     const txResult = await this.sendToken({
       issuer: process.env.TOKEN_ISSUER,
       tokenSymbol: process.env.TOKEN_SYMBOL,
-      tokenAmount: points * 0.01,
+      tokenAmount: amount,
       signer: this.getTreasuryWallet(),
       toAddress: row.xrp_address,
     });
@@ -617,7 +622,7 @@ exports.checkRewardsState = async () => {
       (!txResult.txHash ? 'Not sent' : txResult.txHash),
       row.xrp_address,
       row.id,
-      points * 0.01,
+      amount,
       txResult.success,
       (!txResult.error ? '' : txResult.error),
       moment().tz("Africa/Abidjan").format("YYYY-MM-DD HH:mm:ss"),
@@ -638,6 +643,22 @@ exports.checkRewardsState = async () => {
     .catch((error) => {
       console.error("Error updating rewards history:", error);
     });
+}
+
+exports.getPoolAmount = async () => {
+  const poolTrustLines = await this.getBalance(process.env.TREASURY_ACCOUNT);
+  if (!poolTrustLines) {
+    console.log("No trust lines found for the treasury account.");
+    return 0;
+  }
+  const aax = poolTrustLines.filter(token => token.currency === process.env.TOKEN_SYMBOL && token.account === process.env.TOKEN_ISSUER);
+  
+  if (aax.length === 0) {
+    console.log("No trust line found for the specified token.");
+    return 0;
+  }
+
+  return aax[0].balance;
 }
 
 const delay = async (ms) => {

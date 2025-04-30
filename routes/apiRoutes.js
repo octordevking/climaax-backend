@@ -3,7 +3,7 @@ const xummController = require("../controllers/xummController.js");
 const nftController = require("../controllers/nftController.js")
 const express = require("express");
 const router = express.Router();
-const {checkRewardsState} = require("../utils/utils.js");
+const {getPoolAmount} = require("../utils/utils.js");
 
 router.post('/stake', apiController.saveStake);
 router.post('/stake/payload', apiController.getStakePayload);
@@ -24,6 +24,7 @@ router.get("/nfts/nftlist", nftController.getNftList);
 router.get("/nfts/verified-nfts", nftController.getVerifiedNfts);
 router.post("/nfts/verify/xrp", nftController.setVerifiedXrpStatus);
 router.post("/nfts/verify/sgb", nftController.setVerifiedSgbStatus);
+router.get("/nfts/pool-infor", nftController.getPoolInfo);;
 // router.get("/nfts/sgb/nftlist", nftController.getValidatedSgbNfts);
 router.get("/nfts/sgb/verified-nfts", nftController.getVerifiedSgbNfts);
 

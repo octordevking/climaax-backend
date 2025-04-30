@@ -253,7 +253,7 @@ exports.getRewardsState = async () => {
         connection = await Config.getConnection();
         const oneMonthAgo = moment().subtract(1, 'months').tz("Africa/Abidjan");
         const queryPromise = util.promisify(connection.query).bind(connection);
-        console.log(oneMonthAgo, oneMonthAgo.year(), oneMonthAgo.month(), oneMonthAgo.year(), oneMonthAgo.month())
+        // console.log(oneMonthAgo, oneMonthAgo.year(), oneMonthAgo.month(), oneMonthAgo.year(), oneMonthAgo.month())
         const results = await queryPromise(
             `SELECT id, xrp_address, xrp_verified_points, sgb_verified_points, (YEAR(xrp_verified_date) = ? AND MONTH(xrp_verified_date) = ?) as xrp_verified, (YEAR(sgb_verified_date) = ? AND MONTH(sgb_verified_date) = ?) as sgb_verified FROM verified_accounts WHERE (YEAR(xrp_verified_date) = ? AND MONTH(xrp_verified_date) = ? ) OR (YEAR(sgb_verified_date) = ? AND MONTH(sgb_verified_date) = ? )`,
             [oneMonthAgo.year(), oneMonthAgo.month() + 1, oneMonthAgo.year(), oneMonthAgo.month() + 1, oneMonthAgo.year(), oneMonthAgo.month() + 1, oneMonthAgo.year(), oneMonthAgo.month() + 1]
@@ -278,6 +278,33 @@ exports.insertRewardsHistory = async (query) => {
             `INSERT INTO reward_history (txn_hash, to_address, verified_account_id, amount, success, note, timestamp) VALUES  ?`, 
             [query]
         );
+    } catch (error) {
+        console.error('Error executing query:', error);
+        throw error;
+    } finally {
+        if (connection) {
+            connection.release(); // Release the connection back to the pool
+        }
+    }
+}
+
+exports.getTotalPoints = async () => {
+    let connection;
+    try {
+        connection = await Config.getConnection();
+        const oneMonthAgo = moment().subtract(1, 'months').tz("Africa/Abidjan");
+        const queryPromise = util.promisify(connection.query).bind(connection);
+        const results = await queryPromise(
+            `SELECT SUM(xrp_verified_points) as xrp_total, SUM(sgb_verified_points) as sgb_total, (YEAR(xrp_verified_date) = ? AND MONTH(xrp_verified_date) = ?) as xrp_verified, (YEAR(sgb_verified_date) = ? AND MONTH(sgb_verified_date) = ?) as sgb_verified FROM verified_accounts WHERE (YEAR(xrp_verified_date) = ? AND MONTH(xrp_verified_date) = ? ) OR (YEAR(sgb_verified_date) = ? AND MONTH(sgb_verified_date) = ? )`,
+            [oneMonthAgo.year(), oneMonthAgo.month() + 1, oneMonthAgo.year(), oneMonthAgo.month() + 1, oneMonthAgo.year(), oneMonthAgo.month() + 1, oneMonthAgo.year(), oneMonthAgo.month() + 1]
+        );
+        if (!results) return 0;
+        const xrpVerified = results[0].xrp_verified;
+        const sgbVerified = results[0].sgb_verified;
+        const xrpTotal = results[0].xrp_total || 0;
+        const sgbTotal = results[0].sgb_total || 0;
+        const totalPoints = (xrpVerified === 1 ? xrpTotal : 0) + (sgbVerified === 1 ? sgbTotal : 0);
+        return totalPoints;
     } catch (error) {
         console.error('Error executing query:', error);
         throw error;

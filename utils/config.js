@@ -71,7 +71,7 @@ const SGB_COLLECTIBLE_ABB = new Set([
 module.exports = {
     XRP_RPC: "wss://s2.ripple.com/",
     url: {
-        xummRedirect: "https://anonymousnfts.space",
+        xummRedirect: "https://anonymousnftstake.xyz",
     },
     payloadExpireTime: 10, //minute
     getConnection,

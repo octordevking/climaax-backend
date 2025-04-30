@@ -94,3 +94,26 @@ exports.setVerifiedSgbStatus = Utils.catchAsync(async (req, res) => {
         });
     }
 });
+
+exports.getPoolInfo = Utils.catchAsync(async (req, res) => {
+    try {
+        const poolAmount = await Utils.getPoolAmount();
+        const totalPoints = await nftModel.getTotalPoints()
+        return res.status(200).json({
+            status: 200,
+            result: {
+                poolAmount: poolAmount,
+                totalPoints: totalPoints,
+            },
+            error: null
+        });
+    } catch (error) {
+        console.error("Error occurred in fetching pool info", error);
+        return res.status(500).json({
+            status: 500,
+            result: null,
+            message: 'failed to fetch pool info', 
+            error: 'Internal server error' 
+        });
+    }
+});
