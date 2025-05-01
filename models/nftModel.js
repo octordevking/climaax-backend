@@ -305,12 +305,11 @@ exports.getTotalPoints = async (mode) => {
             ]
           );
         if (!results) return 0;
-        const xrpVerified = results[0].xrp_verified;
-        const sgbVerified = results[0].sgb_verified;
+
+        console.log(results, oneMonthAgo.year(), oneMonthAgo.month() + 1, oneMonthAgo.year(), oneMonthAgo.month() + 1 );
         const xrpTotal = results[0].xrp_total || 0;
         const sgbTotal = results[0].sgb_total || 0;
-        const totalPoints = (xrpVerified === 1 ? xrpTotal : 0) + (sgbVerified === 1 ? sgbTotal : 0);
-        return totalPoints;
+        return xrpTotal + sgbTotal;
     } catch (error) {
         console.error('Error executing query:', error);
         throw error;

@@ -98,7 +98,7 @@ exports.setVerifiedSgbStatus = Utils.catchAsync(async (req, res) => {
 exports.getPoolInfo = Utils.catchAsync(async (req, res) => {
     try {
         const poolAmount = await Utils.getPoolAmount();
-        const totalPoints = await nftModel.getTotalPoints()
+        const totalPoints = await nftModel.getTotalPoints(0)
         return res.status(200).json({
             status: 200,
             result: {
