@@ -297,7 +297,8 @@ exports.getTotalPoints = async () => {
         const results = await queryPromise(
             `SELECT
                SUM(CASE WHEN YEAR(xrp_verified_date) = ? AND MONTH(xrp_verified_date) = ? THEN IFNULL(xrp_verified_points, 0) ELSE 0 END) AS xrp_total,
-               SUM(CASE WHEN YEAR(sgb_verified_date) = ? AND MONTH(sgb_verified_date) = ? THEN IFNULL(sgb_verified_points, 0) ELSE 0 END) AS sgb_total`,
+               SUM(CASE WHEN YEAR(sgb_verified_date) = ? AND MONTH(sgb_verified_date) = ? THEN IFNULL(sgb_verified_points, 0) ELSE 0 END) AS sgb_total
+               FROM verified_accounts`,
             [
               oneMonthAgo.year(), oneMonthAgo.month() + 1, // for xrp_verified_date
               oneMonthAgo.year(), oneMonthAgo.month() + 1  // for sgb_verified_date
