@@ -288,11 +288,11 @@ exports.insertRewardsHistory = async (query) => {
     }
 }
 
-exports.getTotalPoints = async () => {
+exports.getTotalPoints = async (mode) => {
     let connection;
     try {
         connection = await Config.getConnection();
-        const oneMonthAgo = moment().subtract(1, 'months').tz("Africa/Abidjan");
+        const oneMonthAgo = moment().subtract(mode, 'months').tz("Africa/Abidjan");
         const queryPromise = util.promisify(connection.query).bind(connection);
         const results = await queryPromise(
             `SELECT

@@ -601,7 +601,7 @@ exports.checkRewardsState = async () => {
   }
   let insertQueryArray = [];
 
-  const totalPoints = await getTotalPoints();
+  const totalPoints = await getTotalPoints(1);
 
   const poolAmount = await this.getPoolAmount();
 
