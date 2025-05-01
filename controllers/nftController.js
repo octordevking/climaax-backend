@@ -112,7 +112,7 @@ exports.getPoolInfo = Utils.catchAsync(async (req, res) => {
         return res.status(500).json({
             status: 500,
             result: null,
-            message: 'failed to fetch pool info', 
+            message: error.message, 
             error: 'Internal server error' 
         });
     }
