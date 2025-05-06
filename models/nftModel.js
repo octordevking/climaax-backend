@@ -1,6 +1,7 @@
 const util = require("util");
 const dotenv = require("dotenv");
 const Config = require("../utils/config");
+const Utils = require("../utils/utils.js");
 const moment = require('moment');
 
 dotenv.config();
@@ -23,14 +24,20 @@ exports.getExistingNftsIds = async () => {
 exports.getExisitingNfts = async (offset, limit) => {
     let connection;
     try {
-        connection = await Config.getConnection();
-        const queryPromise = util.promisify(connection.query).bind(connection);
-        if (offset === undefined || limit === undefined) {
-            const rows = await queryPromise(`SELECT * FROM validated_nfts where is_burned = 0 ORDER BY last_updated DESC; `);
-            return rows;
+        const nfts = await Utils.fetchAllVaidatedNfts(process.env.WALLET_ISSUER);
+        const nftList = [];
+        for (let i = 0; i < limit; i++){
+            nftList.push(nfts[i]);
         }
-        const rows = await queryPromise(`SELECT * FROM validated_nfts where is_burned = 0 ORDER BY last_updated DESC  LIMIT ${limit} OFFSET ${offset}; `);
-        return rows;
+        return nftList;
+        // connection = await Config.getConnection();
+        // const queryPromise = util.promisify(connection.query).bind(connection);
+        // if (offset === undefined || limit === undefined) {
+        //     const rows = await queryPromise(`SELECT * FROM validated_nfts where is_burned = 0 ORDER BY last_updated DESC; `);
+        //     return rows;
+        // }
+        // const rows = await queryPromise(`SELECT * FROM validated_nfts where is_burned = 0 ORDER BY last_updated DESC  LIMIT ${limit} OFFSET ${offset}; `);
+        // return rows;
     } catch (error) {
         console.error('Error executing query:', error);
         throw error;

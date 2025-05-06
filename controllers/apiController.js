@@ -117,14 +117,15 @@ exports.saveStake = Utils.catchAsync(async (req, res) => {
 //   }
 // });
 
-exports. getStakePayload = Utils.catchAsync(async (req, res) => {
-  const { address, amount, option, isMobile } = req.body;
+exports.getStakePayload = Utils.catchAsync(async (req, res) => {
+  const { address, amount, option, isMobile, walletType } = req.body;
 
   if (!address)
     throw new Error("Missing address");
 
   const stakeOptions = await StakeModel.queryPossibleStakeOptions();
   const selectedOption = stakeOptions.find(item => item.id === option);
+
   if (!selectedOption) {
     throw new Error("Staking option is invalid");
   }
@@ -147,8 +148,12 @@ exports. getStakePayload = Utils.catchAsync(async (req, res) => {
     });
   }
 
-  const payload = await XummController.getStakePayload(address, amount, selectedOption, isMobile);
-
+  let payload;
+  if (walletType === 'xumm'){
+    payload = await XummController.getStakePayload(address, amount, selectedOption, isMobile);
+  } else if (walletType === 'led ger'){
+    payload = null;
+  }
   return res.status(200).json({
     status: 200,
     result: payload,

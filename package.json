@@ -1,7 +1,7 @@
 {
-    "name": "nodejs-backend",
+    "name": "climaax-api",
     "version": "1.0.0",
-    "description": "Backend Starting files using NodeJS (ExpressJS)",
+    "description": "Climaax API",
     "exports": "./server.js",
     "scripts": {
         "dev": "nodemon server.js",
@@ -9,7 +9,7 @@
         "prod": "SET NODE_ENV=production& nodemon server.js"
     },
     "keywords": [],
-    "author": "",
+    "author": "Arbac",
     "license": "ISC",
     "dependencies": {
         "axios": "^1.4.0",
