@@ -23,7 +23,7 @@ exports.signinXumm = Utils.catchAsync(async (req, res) => {
             },
         };
 
-        const payload = await xummSdk.payload.create(request);
+        const payload = await xummSdk.payload.createAndSubscribe(request);
 
         res.status(200).json({
             status: 200,
