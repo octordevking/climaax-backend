@@ -231,14 +231,21 @@ exports.checkTransactionValidity = async (transactionId, fromAddress, amount, ol
 
 const getNftsOfAccount = async (accountAddress) => {
   try {
-    console.log("Fetching NFTs of account: ", accountAddress);
-    const nftLists = await client.request({
-      command: "account_nfts",
-      account: accountAddress,
-      ledger_index: "validated",
-    });
+    // console.log("Fetching NFTs of account: ", accountAddress);
+    // const nftLists = await client.request({
+    //   command: "account_nfts",
+    //   account: accountAddress,
+    //   ledger_index: "validated",
+    // });
     
-    return nftLists.result.account_nfts
+    // return nftLists.result.account_nfts
+    const res = await fetch(`https://bithomp.com/api/v2/nfts?owner=${accountAddress}`, {
+      headers:{
+        "x-bithomp-token": "f81fe4cd-459e-482e-a1ba-84a91a7a73b9"
+      }
+    });
+    const data = await res.json();
+    return data.nfts;
   } catch (err){
     throw new Error(err.message);
   }
@@ -293,17 +300,20 @@ exports.getVerifiedNftsOfAccount = async (accountAddress) => {
     };
 
     let userVerified = false;
-    const nfts = nftLists.map((nft) => {
-      const taxonId = nft.NFTokenTaxon;
+    const filteredNfts = nftLists.filter(nft => nft.type === "xls20");
+
+    const nfts = filteredNfts.map((nft) => {
+      const taxonId = nft.nftokenTaxon;
       const points = taxonPoints[taxonId]; 
       const isVerified = points !== undefined;
       if (isVerified && !userVerified){
         userVerified = true;
       }
       return {
-        nft_id: nft.NFTokenID,
-        uri: nft.URI,
+        nft_id: nft.nftokenID,
+        uri: nft.uri,
         nft_taxon: taxonId,
+        metadata: nft.metadata,
         points: points,
         isVerified: isVerified,
       }
