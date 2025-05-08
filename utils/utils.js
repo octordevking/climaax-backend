@@ -1,6 +1,6 @@
 const xrpl = require('xrpl');
 const Config = require('./config');
-const {getExistingNftsIds, updateBurnedNfts, insertNfts, getPointsByTaxonId, getPointsArrayOfSgb, getRewardsState, insertRewardsHistory, getTotalPoints} = require('../models/nftModel');
+const { getPointsByTaxonId, getPointsArrayOfSgb, getRewardsState, insertRewardsHistory, getTotalPoints} = require('../models/nftModel');
 const { Client } = xrpl;
 const client = new Client(Config.XRP_RPC);
 const moment = require('moment');

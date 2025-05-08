@@ -4,7 +4,6 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const compression = require("compression");
 const apiRouter = require("./routes/apiRoutes.js");
-const { runRewardProcessing } = require("./controllers/apiController.js");
 
 const app = express();
 
@@ -19,9 +18,9 @@ app.use(cookieParser()); // TO READ COOKIES SENT FROM CLIENT
 // USE THIS MIDDLEWARE TO COMPRESS TEXT RESPONSE THAT WE SENT TO CLIENTS
 app.use(compression());
 
-if (process.env.NODE_ENV === "development") {
-    app.use(morgan("dev"));
-}
+// if (process.env.NODE_ENV === "development") {
+//     app.use(morgan("dev"));
+// }
 
 app.use("/api/v1", apiRouter);
 
