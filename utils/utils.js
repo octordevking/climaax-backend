@@ -428,7 +428,7 @@ exports.getVerifiedSgbNftsOfAccount = async (accountAddress) => {
       getSgbNftsOfAccount(accountAddress),
       getPointsArrayOfSgb(),
     ]);
-
+    console.log("pointsData: ", pointsData);
     if (!nftList){
       return {
         account: accountAddress,
@@ -486,70 +486,94 @@ exports.getVerifiedSgbNftsOfAccount = async (accountAddress) => {
 };
 
 const calculateSGBNftPoints = async (nfts) => {
+  if (nfts.length === 0) {
+    return {
+      totalPoints: 0,
+      basePoints: 0,
+      bonusPoints: 0,
+    };
+  }
+
   let basePoints = 0;
-  let totalPoints = 0;
-  let bonusPoints = 0;
+  let toyboxPoints = 0;
   let masterpiecePoints = 0;
   let collectiblePoints = 0;
-  let collectibleCount = 0;
-  let toyboxPoints = 0;
   let toyboxCount = 0;
+  let collectibleCount = 0;
+  let ajmPoints = 0;
 
   const ownedAbbs = new Set();
-  if(nfts.length === 0) return {
-    totalPoints: 0,
-    basePoints: 0,
-    bonusPoints: 0
-  };
 
-  for (const nft of nfts){
-    if (!nft.isVerified ) continue;
+  for (const nft of nfts) {
+    if (!nft.isVerified) continue;
+
     const abb = nft.abbreviation;
-    const points =parseFloat(nft.points);
+    const points = parseFloat(nft.points);
     ownedAbbs.add(abb);
     basePoints += points;
 
-    if (Config.TOYBOX_ABB_SGB.has(abb)){
+    if (Config.TOYBOX_ABB_SGB.has(abb)) {
       toyboxPoints += points;
-      toyboxCount ++;
-    } else if (Config.MASTERPIECES_ABB_SGB.has(abb)){
+      toyboxCount++;
+    } else if (Config.MASTERPIECES_ABB_SGB.has(abb)) {
       masterpiecePoints += points;
-    } else if (Config.SGB_COLLECTIBLE_ABB.has(abb)){
+    } else if (Config.SGB_COLLECTIBLE_ABB.has(abb)) {
       collectiblePoints += points;
       collectibleCount++;
+    } else if (abb === 'AJM'){
+      ajmPoints += points;
     }
   }
 
-  const toyboxBonus = toyboxCount + (0.05 * toyboxPoints);
+  // Toybox bonus: only apply if all required Toyboxes are owned
+  const hasFullToyboxSet = [...Config.TOYBOX_ABB_SGB].every(abb => ownedAbbs.has(abb));
+  const toyboxBonus = hasFullToyboxSet
+    ? toyboxCount + 0.05 * toyboxPoints
+    : 0;
 
-  const sets = [
+  // Masterpiece bonuses for full sets
+  const masterpieceSets = [
     new Set(['AR', 'FS']),
     new Set(['SS', 'BP']),
     new Set(['X', 'R', 'P', 'L', 'LIS']),
   ];
   let masterpieceBonus = 0;
-  sets.forEach(set => {
-      if ([...set].every(item => ownedAbbs.has(item))) {
-          masterpieceBonus += 0.5;
-      }
-  });
-  masterpiecePoints += masterpieceBonus;
-  const totalBeforeBonus = toyboxPoints + toyboxBonus + masterpiecePoints + collectiblePoints;
 
+  for (const set of masterpieceSets) {
+    if ([...set].every(abb => ownedAbbs.has(abb))) {
+      masterpieceBonus += 0.5;
+    }
+  }
+
+  // Total before collection bonus
+  const totalBeforeCollectionBonus =
+    toyboxPoints +
+    collectiblePoints +
+    masterpiecePoints +
+    toyboxBonus +
+    masterpieceBonus + 
+    ajmPoints;
+
+  // Collection bonus (10%) if user owns at least one from each group
   const hasCollectionBonus =
     toyboxCount > 0 &&
     collectibleCount > 0 &&
     [...Config.MASTERPIECES_ABB_SGB].some(abb => ownedAbbs.has(abb));
 
-  const collectionBonus = hasCollectionBonus ? totalBeforeBonus * 0.10 : 0;
+  const collectionBonus = hasCollectionBonus
+    ? totalBeforeCollectionBonus * 0.10
+    : 0;
 
-  const finalTotal = totalBeforeBonus + collectionBonus;
+  const finalTotal = totalBeforeCollectionBonus + collectionBonus;
+  console.log("Final total: ", totalBeforeCollectionBonus, collectionBonus);
+
   return {
     totalPoints: finalTotal,
-    basePoints: basePoints,
-    bonusPoints: toyboxBonus + collectionBonus + masterpieceBonus,
+    basePoints,
+    bonusPoints: toyboxBonus + masterpieceBonus + collectionBonus,
   };
-}
+};
+
 
 exports.updateSGBNftListByIssuer = async (issuerAddress) => {
   try{
