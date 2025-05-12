@@ -233,8 +233,7 @@ exports.getSwapPayload = async (address, swapAmount, toAmount, isMobile) => {
             },
             Flags: 0x00040000
         };
-        console.log(offerCreateTx);
-
+        
         const request = {
             txjson: offerCreateTx,
             options: {

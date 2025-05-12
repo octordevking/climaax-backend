@@ -443,7 +443,7 @@ exports.getVerifiedSgbNftsOfAccount = async (accountAddress) => {
       let match;
       let nft_name;
       const nft_collection_name = nft.token.name;
-      if (nft.token.symbol == "AASGB"){
+      if (nft.token.symbol == "AASGB" || nft.token.symbol == "AJM"){
         nft_name = nft.token.name;
         match =  pointsData.find(sql =>
           sql.contract_address == contract_address 
